@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Employee Management System</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        padding: 20px;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      button {
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+
+      th {
+        background: #333;
+        color: white;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background: white;
+        width: 300px;
+        margin: 100px auto;
+        padding: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Employee Management System</h2>
+    <button onclick="openModal()">Add Employee</button>
+
+    <p id="count"></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Salary</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="empTable"></tbody>
+    </table>
+
+    <div class="modal" id="modal">
+      <div class="modal-content">
+        <h3 id="modalTitle">Add Employee</h3>
+
+        <input type="hidden" id="empId" />
+
+        <input id="name" placeholder="Name" /><br /><br />
+        <input id="dept" placeholder="Department" /><br /><br />
+        <input id="salary" type="number" placeholder="Salary" /><br /><br />
+
+        <button onclick="saveEmployee()">Save</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8080/employee";
+
+      function loadEmployees() {
+        axios.get(API_URL).then((res) => {
+          const tbody = document.getElementById("empTable");
+          tbody.innerHTML = "";
+          document.getElementById("count").innerText =
+            "Total Employees: " + res.data.length;
+
+          res.data.forEach((e) => {
+            tbody.innerHTML += `
+        <tr>
+          <td>${e.id}</td>
+          <td>${e.name}</td>
+          <td>${e.department}</td>
+          <td>${e.salary}</td>
+          <td>
+            <button onclick='editEmployee(${JSON.stringify(e)})'>Edit</button>
+            <button onclick='deleteEmployee(${e.id}, "${e.name}")'>Delete</button>
+          </td>
+        </tr>`;
+          });
+        });
+      }
+
+      function openModal() {
+        document.getElementById("modal").style.display = "block";
+      }
+
+      function closeModal() {
+        document.getElementById("modal").style.display = "none";
+        document.getElementById("empId").value = "";
+        document.getElementById("name").value = "";
+        document.getElementById("dept").value = "";
+        document.getElementById("salary").value = "";
+      }
+
+      function saveEmployee() {
+        let counter = 0;
+        const id = document.getElementById("empId").value;
+
+        const nameInput = document.getElementById("name");
+        const deptInput = document.getElementById("dept");
+        const salaryInput = document.getElementById("salary");
+
+        const emp = {
+          name: nameInput.value,
+          department: deptInput.value,
+          salary: Number(salaryInput.value),
+        };
+
+        if (
+          emp.name.trim() === "" ||
+          emp.department.trim() === "" ||
+          isNaN(emp.salary)
+        ) {
+          alert("All fields are required");
+          return;
+        }
+
+        if (id) {
+          axios
+            .put(API_URL + "/" + id, emp, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+            .then(loadEmployees);
+        } else {
+          axios
+            .post(API_URL, emp, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+            .then(loadEmployees)
+            .catch((err) => console.error(err.response));
+        }
+
+        closeModal();
+      }
+
+      function editEmployee(emp) {
+        openModal();
+        empId.value = emp.id;
+        name.value = emp.name;
+        dept.value = emp.department;
+        salary.value = emp.salary;
+      }
+
+      function deleteEmployee(id, name) {
+        if (confirm("Delete employee " + name + "?")) {
+          axios.delete(API_URL + "/" + id).then(loadEmployees);
+        }
+      }
+
+      loadEmployees();
+    </script>
+  </body>
+</html>
